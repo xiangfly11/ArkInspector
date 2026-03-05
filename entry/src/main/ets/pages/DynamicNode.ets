@@ -11,6 +11,7 @@ export interface EventConfig {
   params?: Record<string, JsonValue>; // 事件透传的参数
 }
 
+@Observed
 export class DynamicNode {
   type: string;
   props: Record<string, JsonValue>;

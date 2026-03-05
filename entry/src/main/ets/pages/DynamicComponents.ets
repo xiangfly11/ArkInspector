@@ -3,121 +3,147 @@
  * File Name: DynamicComponents.ets
  * Author: Jason
  **/
-
 import { DynamicColumnModifier } from "./DynamicColumnModifier";
 import { DynamicImageModifier } from "./DynamicImageModifier";
-import { DynamicNode, EventConfig } from "./DynamicNode";
+import { DynamicNode, JsonValue } from "./DynamicNode";
 import { DynamicRowModifier } from "./DynamicRowModifier";
 import { DynamicTextModifier } from "./DynamicTextModifier";
+import { SDUIState } from "./SDUIState";
 import { SDUIEventDispatcher } from "./SDUIEventDispatcher";
 
-
 // ==========================================
-// 提取公共的事件处理逻辑
+// 实时解析器：当遇到 ${xxx} 时，从全局状态中取值
 // ==========================================
-function handleNodeEvents(events?: Record<string, EventConfig>) {
-  if (!events) return;
+function resolveProps(props: Record<string, JsonValue>, stateContext: SDUIState): Record<string, JsonValue> {
+  let resolvedProps: Record<string, JsonValue> = {};
+  let keys = Object.keys(props);
 
-  // 拦截点击事件
-  let clickConfig = events['onClick'];
-  if (clickConfig) {
-    SDUIEventDispatcher.dispatch(clickConfig);
+  for (let i = 0; i < keys.length; i++) {
+    let key = keys[i];
+    let val = props[key];
+
+    if (typeof val === 'string' && val.startsWith('${') && val.endsWith('}')) {
+      let stateKey = val.substring(2, val.length - 1);
+
+      // ✨ V2 核心魔法：执行 .value 时，ArkUI 会自动将当前组件与这个具体的 @Trace 属性深度绑定！
+      resolvedProps[key] = stateContext.getItem(stateKey).value;
+    } else {
+      resolvedProps[key] = val; // 静态属性原样保留
+    }
   }
-
-  // 如果未来需要长按事件，可以直接扩充：
-  // let longPressConfig = events['onLongPress'];
+  return resolvedProps;
 }
 
+// ==========================================
+// 原子组件区 (WrappedBuilder 注册)
+// ==========================================
 @Builder
 export function buildText(node: DynamicNode) {
-  // 直接在参数中进行 as 断言和默认值赋予
   Text((node.props['text'] as string) ?? '')
     .attributeModifier(new DynamicTextModifier(node.props))
-    .onClick(() => {
-        handleNodeEvents(node.events);
-    })
 }
 
 @Builder
 export function buildImage(node: DynamicNode) {
   Image((node.props['src'] as string) ?? '')
     .attributeModifier(new DynamicImageModifier(node.props))
-    .onClick(() => {
-        handleNodeEvents(node.events);
-    })
 }
 
-// 严格声明 Registry 的结构
 const ComponentRegistry: Record<string, WrappedBuilder<[DynamicNode]>> = {
   'Text': wrapBuilder(buildText),
   'Image': wrapBuilder(buildImage)
 };
 
-@Component
+// ==========================================
+// 容器与路由工厂 (使用 V2 语法)
+// ==========================================
+@ComponentV2
 export struct DynamicFactory {
-  @Prop nodeData: DynamicNode;
+  // 使用 @Param 接收外部传入的不可变数据和状态上下文
+  @Param nodeData: DynamicNode = new DynamicNode('Column', {});
+  @Param stateContext: SDUIState = new SDUIState({});
+  //组件级的局部锁，用于标记当前是否正在执行耗时操作
+  @Local isProcessing: boolean = false;
 
-  build() {
-    // ==========================================
-    // 场景 A：处理【容器组件】(必须包裹 children)
-    // ==========================================
-    if (this.nodeData.type === 'Column') {
-      // 1. 实例化真正的 Column，提取构造参数 space
-      Column({ space: (this.nodeData.props['space'] as number | string) ?? 0 }) {
+  @Computed
+  get resolvedProps(): Record<string, JsonValue> {
+    return resolveProps(this.nodeData.props, this.stateContext);
+  }
 
-        // 2. 将子节点真正放入 Column 的大括号内部！
-        if (this.nodeData.children && this.nodeData.children.length > 0) {
-          ForEach(this.nodeData.children, (childNode: DynamicNode) => {
-            // 递归调用
-            DynamicFactory({ nodeData: childNode })
-          }, (childNode: DynamicNode, index: number) => {
-            // 尽量使用后端下发的唯一 id，如果没有再降级拼接
-            return childNode.props['nodeId'] ? String(childNode.props['nodeId']) : `${childNode.type}_${index}`;
-          })
+  // 如果当前节点在 JSON 中没有配置 onClick，严格返回 undefined！
+  // 这样 ArkUI 就会让点击事件自动冒泡给有配置 onClick 的父组件。
+  // 修改事件分发器
+  getClickHandler(): ((event: ClickEvent) => void) | undefined {
+    let clickConfig = this.nodeData.events?.['onClick'];
+
+    if (clickConfig) {
+      // 变更为 async 箭头函数
+      return async (event: ClickEvent) => {
+        // 1. 如果正在处理中，直接拦截并丢弃这次点击
+        if (this.isProcessing && clickConfig) {
+          console.info(`[SDUI] 拦截重复点击: ${clickConfig.actionType} 正在执行中`);
+          return;
         }
 
-      }
-      // 3. 将所有样式（阴影、圆角、对齐等）打在这个包含了子节点的真实容器上
-      .attributeModifier(new DynamicColumnModifier(this.nodeData.props))
-      .onClick(() => {
-        handleNodeEvents(this.nodeData.events);
-      })
+        // 2. 上锁
+        this.isProcessing = true;
+
+        try {
+          // 3. 核心：等待 Action 完全执行完毕（比如等待网络请求 resolve）
+          await SDUIEventDispatcher.dispatch(clickConfig, this.stateContext);
+        } finally {
+          // 4. 无论成功还是失败（报错），务必在 finally 中解锁
+          this.isProcessing = false;
+        }
+      };
     }
-    // ==========================================
-    // 容器组件 B：Row (水平线性布局)
-    // ==========================================
-    else if (this.nodeData.type === 'Row') {
-      // 1. 实例化真正的 Row，并提取 space 间距参数
-      Row({ space: (this.nodeData.props['space'] as number | string) ?? 0 }) {
-        // 2. 递归渲染子节点放入 Row 内部
-        if (this.nodeData.children && this.nodeData.children.length > 0) {
+
+    return undefined;
+  }
+
+  build() {
+    // 【性能极致】：直接在 build 中解析。由于只读取了绑定的那个具体的 item.value，
+    // 如果其他组件的变量变了，这里连进都不会进来！
+
+    if (this.nodeData.type === 'Column') {
+      Column({ space: (this.resolvedProps['space'] as number | string) ?? 0 }) {
+        if (this.nodeData.children) {
           ForEach(this.nodeData.children, (childNode: DynamicNode) => {
-            DynamicFactory({ nodeData: childNode })
+            DynamicFactory({ nodeData: childNode, stateContext: this.stateContext })
           }, (childNode: DynamicNode, index: number) => childNode.props['nodeId'] ? String(childNode.props['nodeId']) :
             `${childNode.type}_${index}`)
         }
       }
-      // 3. 将我们刚写好的 DynamicRowModifier 挂载上去
-      .attributeModifier(new DynamicRowModifier(this.nodeData.props))
-      .onClick(() => {
-        handleNodeEvents(this.nodeData.events);
-      })
+      .attributeModifier(new DynamicColumnModifier(this.resolvedProps))
+      // 挂载通用的点击事件
+      .onClick(this.getClickHandler())
+
+    } else if (this.nodeData.type === 'Row') {
+      Row({ space: (this.resolvedProps['space'] as number | string) ?? 0 }) {
+        if (this.nodeData.children) {
+          ForEach(this.nodeData.children, (childNode: DynamicNode) => {
+            DynamicFactory({ nodeData: childNode, stateContext: this.stateContext })
+          }, (childNode: DynamicNode, index: number) => childNode.props['nodeId'] ? String(childNode.props['nodeId']) :
+            `${childNode.type}_${index}`)
+        }
+      }
+      .attributeModifier(new DynamicRowModifier(this.resolvedProps))
+      .onClick(this.getClickHandler())
+
+    } else if (this.nodeData.type === 'Text') {
+      Text((this.resolvedProps['text'] as string) ?? '')
+        .attributeModifier(new DynamicTextModifier(this.resolvedProps))
+        .onClick(this.getClickHandler())
+
     }
-    // ==========================================
-    // 场景 B：处理【原子组件】(无 children)
-    // ==========================================
-    else if (ComponentRegistry[this.nodeData.type]) {
-      // 从字典中取出 Text、Image 等组件并渲染
-      ComponentRegistry[this.nodeData.type].builder(this.nodeData)
+    else if (this.nodeData.type === 'Image') {
+      Image((this.resolvedProps['src'] as string) ?? '')
+        .attributeModifier(new DynamicImageModifier(this.resolvedProps))
+        .onClick(this.getClickHandler())
+
     }
-    // ==========================================
-    // 场景 C：容错降级
-    // ==========================================
     else {
-      Text(`[未识别的组件类型: ${this.nodeData.type}]`)
-        .fontColor(Color.Red)
-        .padding(16)
-        .backgroundColor('#FFF0F0')
+      Text(`[未识别: ${this.nodeData.type}]`).fontColor(Color.Red).padding(10)
     }
   }
 }

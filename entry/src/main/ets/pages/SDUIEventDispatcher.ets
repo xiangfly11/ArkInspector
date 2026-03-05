@@ -5,38 +5,34 @@
  **/
 
 
-import { promptAction } from '@kit.ArkUI';
 import { EventConfig } from './DynamicNode';
+import { SDUIState } from './SDUIState';
+import { SDUIActionHandler, UpdateStateAction, ShowToastAction, HttpRequestAction,
+  ToggleStateAction } from './SDUIActions';
+
+// 【核心】：动作注册表，扩展新动作只需在这里加一行
+const ActionRegistry: Record<string, SDUIActionHandler> = {
+  'updateState': new UpdateStateAction(),
+  'toast': new ShowToastAction(),
+  'httpRequest': new HttpRequestAction(),
+  'toggleState': new ToggleStateAction()
+};
 
 export class SDUIEventDispatcher {
+  // 静态分发方法
+  static async dispatch(eventConfig: EventConfig | undefined, stateContext: SDUIState) {
+    if (!eventConfig || !eventConfig.actionType) return;
 
-  // 核心分发方法
-  static dispatch(event?: EventConfig) {
-    if (!event || !event.actionType) return;
-
-    switch (event.actionType) {
-      case 'toast':
-        // 解析提示参数
-        let msg = (event.params?.['message'] as string) ?? '默认提示';
-        promptAction.showToast({ message: msg });
-        break;
-
-      case 'route':
-        // 解析路由跳转
-        let url = event.params?.['url'] as string;
-        console.info(`[SDUI Event] 准备跳转至路由: ${url}`);
-        // router.pushUrl({ url: url });
-        break;
-
-      case 'request':
-        // 发起网络请求 (如点赞、收藏)
-        let api = event.params?.['api'] as string;
-        console.info(`[SDUI Event] 发起业务请求: ${api}, 参数: ${JSON.stringify(event.params)}`);
-        break;
-
-      default:
-        console.warn(`[SDUI Event] 暂不支持的事件类型: ${event.actionType}`);
-        break;
+    let handler = ActionRegistry[eventConfig.actionType];
+    if (handler) {
+      try {
+        let params = eventConfig.params ?? {};
+        await handler.execute(params, stateContext);
+      } catch (error) {
+        console.error(`[SDUI Event] Action执行异常: ${eventConfig.actionType}`, error);
+      }
+    } else {
+      console.warn(`[SDUI Event] 暂不支持的 Action 类型: ${eventConfig.actionType}`);
     }
   }
 }

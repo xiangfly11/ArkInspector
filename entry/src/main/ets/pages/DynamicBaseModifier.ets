@@ -168,6 +168,21 @@ export class DynamicBaseModifier implements AttributeModifier<CommonAttribute> {
         }
       }
     }
+
+    // ==========================================
+    // 8. 启用/禁用 (Enabled)
+    // ==========================================
+    if (this.props['enabled'] !== undefined) {
+      // 如果 enabled 为 false，组件不仅无法点击，ArkUI 还会自动屏蔽其触摸事件
+      instance.enabled(this.props['enabled'] as boolean);
+    }
+
+    // ==========================================
+    // 9. 透明度 (Opacity)
+    // ==========================================
+    if (this.props['opacity'] !== undefined) {
+      instance.opacity(this.props['opacity'] as number);
+    }
   }
 
   // ==========================================
