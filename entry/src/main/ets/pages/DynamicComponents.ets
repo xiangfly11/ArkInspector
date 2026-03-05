@@ -6,44 +6,49 @@
 
 import { DynamicColumnModifier } from "./DynamicColumnModifier";
 import { DynamicImageModifier } from "./DynamicImageModifier";
-import { JsonValue, DynamicNode } from "./DynamicNode";
+import { DynamicNode, EventConfig } from "./DynamicNode";
 import { DynamicRowModifier } from "./DynamicRowModifier";
 import { DynamicTextModifier } from "./DynamicTextModifier";
+import { SDUIEventDispatcher } from "./SDUIEventDispatcher";
 
 
-@Builder
-export function buildText(props: Record<string, JsonValue>) {
-  // 直接在参数中进行 as 断言和默认值赋予
-  Text((props['text'] as string) ?? '')
-    .attributeModifier(new DynamicTextModifier(props))
-}
+// ==========================================
+// 提取公共的事件处理逻辑
+// ==========================================
+function handleNodeEvents(events?: Record<string, EventConfig>) {
+  if (!events) return;
 
-@Builder
-export function buildMediaWebContainer(props: Record<string, JsonValue>) {
-  Column() {
-    Text(`[Web容器占位] 加载H5地址: ${(props['url'] as string) ?? ''}`)
-      .fontColor(Color.White)
+  // 拦截点击事件
+  let clickConfig = events['onClick'];
+  if (clickConfig) {
+    SDUIEventDispatcher.dispatch(clickConfig);
   }
-  .width('100%')
-  .height((props['height'] as number) ?? 250)
-  .backgroundColor('#2C3E50')
-  .justifyContent(FlexAlign.Center)
+
+  // 如果未来需要长按事件，可以直接扩充：
+  // let longPressConfig = events['onLongPress'];
 }
 
 @Builder
-export function buildColumn(props: Record<string, JsonValue>) {
-  Column({ space: props['space'] as string ?? 0 })
-    .attributeModifier(new DynamicColumnModifier(props))
+export function buildText(node: DynamicNode) {
+  // 直接在参数中进行 as 断言和默认值赋予
+  Text((node.props['text'] as string) ?? '')
+    .attributeModifier(new DynamicTextModifier(node.props))
+    .onClick(() => {
+        handleNodeEvents(node.events);
+    })
 }
 
 @Builder
-export function buildImage(props: Record<string, JsonValue>)  {
-  Image((props['src'] as string) ?? '')
-    .attributeModifier(new DynamicImageModifier(props))
+export function buildImage(node: DynamicNode) {
+  Image((node.props['src'] as string) ?? '')
+    .attributeModifier(new DynamicImageModifier(node.props))
+    .onClick(() => {
+        handleNodeEvents(node.events);
+    })
 }
 
 // 严格声明 Registry 的结构
-const ComponentRegistry: Record<string, WrappedBuilder<[Record<string, JsonValue>]>> = {
+const ComponentRegistry: Record<string, WrappedBuilder<[DynamicNode]>> = {
   'Text': wrapBuilder(buildText),
   'Image': wrapBuilder(buildImage)
 };
@@ -57,7 +62,6 @@ export struct DynamicFactory {
     // 场景 A：处理【容器组件】(必须包裹 children)
     // ==========================================
     if (this.nodeData.type === 'Column') {
-
       // 1. 实例化真正的 Column，提取构造参数 space
       Column({ space: (this.nodeData.props['space'] as number | string) ?? 0 }) {
 
@@ -75,7 +79,9 @@ export struct DynamicFactory {
       }
       // 3. 将所有样式（阴影、圆角、对齐等）打在这个包含了子节点的真实容器上
       .attributeModifier(new DynamicColumnModifier(this.nodeData.props))
-
+      .onClick(() => {
+        handleNodeEvents(this.nodeData.events);
+      })
     }
     // ==========================================
     // 容器组件 B：Row (水平线性布局)
@@ -87,18 +93,22 @@ export struct DynamicFactory {
         if (this.nodeData.children && this.nodeData.children.length > 0) {
           ForEach(this.nodeData.children, (childNode: DynamicNode) => {
             DynamicFactory({ nodeData: childNode })
-          }, (childNode: DynamicNode, index: number) => childNode.props['nodeId'] ? String(childNode.props['nodeId']) : `${childNode.type}_${index}`)
+          }, (childNode: DynamicNode, index: number) => childNode.props['nodeId'] ? String(childNode.props['nodeId']) :
+            `${childNode.type}_${index}`)
         }
       }
       // 3. 将我们刚写好的 DynamicRowModifier 挂载上去
       .attributeModifier(new DynamicRowModifier(this.nodeData.props))
+      .onClick(() => {
+        handleNodeEvents(this.nodeData.events);
+      })
     }
     // ==========================================
     // 场景 B：处理【原子组件】(无 children)
     // ==========================================
     else if (ComponentRegistry[this.nodeData.type]) {
       // 从字典中取出 Text、Image 等组件并渲染
-      ComponentRegistry[this.nodeData.type].builder(this.nodeData.props)
+      ComponentRegistry[this.nodeData.type].builder(this.nodeData)
     }
     // ==========================================
     // 场景 C：容错降级
