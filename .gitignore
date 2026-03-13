@@ -1,12 +1,47 @@
-/node_modules
-/oh_modules
-/local.properties
-/.idea
-**/build
-/.hvigor
-.cxx
-/.clangd
-/.clang-format
-/.clang-tidy
-**/.test
-/.appanalyzer
+# ==========================================
+# 鸿蒙 DevEco Studio 标准 .gitignore 模板
+# ==========================================
+
+# 1. 编译与构建产物
+build/
+.hvigor/
+*/build/
+*/.hvigor/
+*.har
+*.hap
+*.hsp
+*.app
+
+# 2. 依赖包目录
+oh_modules/
+*/oh_modules/
+node_modules/
+*/node_modules/
+
+# 3. 本地环境配置
+local.properties
+
+# 4. IDE 配置文件
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# 5. 签名与证书文件
+*.p12
+*.cer
+*.p7b
+*.pem
+sign/
+
+# 6. 操作系统生成的隐藏文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 7. 日志文件
+*.log

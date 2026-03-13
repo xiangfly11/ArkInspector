@@ -32,18 +32,15 @@ struct RealWorldListPage {
     'margin': { 'top': 10 } as Record<string, number>
   };
 
-  // 💥 关键新增：专门用来打破 ForEach 渲染缓存的触发器
-  // @Local inspectTick: number = 0;
-
   aboutToAppear() {
     let news1 = new NewsItem();
-    news1.news_title = "鸿蒙 SDUI 框架原理解析";
-    news1.praise_count = 100;
+    news1.newsTitle = "鸿蒙 SDUI 框架原理解析";
+    news1.praiseCount = 100;
 
     let news2 = new NewsItem();
-    news2.news_title = "富士 X-T5 摄影技巧分享";
-    news2.praise_count = 888;
-    news2.is_hot = true;
+    news2.newsTitle = "富士 X-T5 摄影技巧分享";
+    news2.praiseCount = 888;
+    news2.isHot = true;
 
     this.newsList = [news1, news2];
 
@@ -66,14 +63,13 @@ struct RealWorldListPage {
                 Text(`[${index}] `).fontSize(18).fontWeight(FontWeight.Bold).fontColor('#3E75D8')
 
                 // --- 标题组件 ---
-                Text(item.news_title)
+                Text(item.newsTitle)
                   .attributeModifier(new DynamicTextModifier(this.titleStyle, `news_title_${index}`))
                   .onClick(UIInspector.withInspect(`news_title_${index}`, this.titleStyle, (newStyle: ESObject) => {
                     this.titleStyle = newStyle as Record<string, Object>;
-                    // this.inspectTick++; // 💥 强制触发页面重绘
                   }))
 
-                if (item.is_hot) {
+                if (item.isHot) {
                   Text("🔥 热搜")
                     .fontSize(12).fontColor('#FF0000').padding(4)
                     .backgroundColor('#FFE5E5').borderRadius(4)
@@ -81,16 +77,14 @@ struct RealWorldListPage {
               }.width('100%')
 
               Row({ space: 20 }) {
-                Text(`👍 点赞: ${item.praise_count}`).fontSize(15)
-                Text(`方法调用: ${item.getTagImg()}`).fontSize(12).fontColor('#AAAAAA')
+                Text(`👍 点赞: ${item.praiseCount}`).fontSize(15)
               }.width('100%')
             }
             // --- 卡片(Column)组件 ---
             .attributeModifier(new DynamicColumnModifier(this.cardStyle, `card_style_${index}`))
             .onClick(UIInspector.withInspect(`card_style_${index}`, this.cardStyle, (newStyle: ESObject) => {
-              // 💥 修复：这里现在绑定的是卡片自己的 cardStyle
+              // 这里现在绑定的是卡片自己的 cardStyle
               this.cardStyle = newStyle as Record<string, Object>;
-              // this.inspectTick++; // 💥 强制触发页面重绘
             }))
           }
         },
