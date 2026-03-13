@@ -30,12 +30,12 @@
 
 ```mermaid
 graph TD
-    subgraph 宿主工程 (Entry)
+    subgraph Host [宿主工程 Entry]
         A[业务页面 UI] -->|绑定 AttributeModifier| B(原生 ArkUI 组件)
         A -->|注册挂载| C[UIInspector.withInspect]
     end
 
-    subgraph ArkInspector 核心引擎 (HAR)
+    subgraph Engine [ArkInspector 核心引擎 HAR]
         C -->|1. 拦截点击, 发射选中信号| D[UIInspector 审查调度器]
         B -.->|应用动态样式| M[Modifiers 修饰器族]
         D -->|2. 推送样式字典| E[DebugManager 数据管家]
@@ -46,14 +46,14 @@ graph TD
         E -->|5. 触发原页面重绘| A
     end
 
-    subgraph Window层
+    subgraph WinLayer [Window层]
         W1[主窗口 主业务线]
         W2[SubWindow 底部透明悬浮窗]
-        W2 -.包载.-> F
+        W2 -.->|包裹承载| F
     end
     
-    style ArkInspector 核心引擎 fill:#f9f2f4,stroke:#d08770,stroke-width:2px
-    style 宿主工程 fill:#e5f5e0,stroke:#31a354,stroke-width:2px
+    style Engine fill:#f9f2f4,stroke:#d08770,stroke-width:2px
+    style Host fill:#e5f5e0,stroke:#31a354,stroke-width:2px
 ```
 ## 核心原理解析
 #### 1.UIInspector (审查拦截器)： 包装在组件的 onClick 事件外层。当处于“审查模式”时，它会拦截原生点击事件，获取控件绑定的样式字典，并通知当前控件绘制红色虚线边框，同时将焦点数据推送到后台管家。
