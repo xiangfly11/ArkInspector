@@ -1,0 +1,11 @@
+export { DebugManager } from './src/main/ets/core/DebugManager';
+export { DebugWindowManager } from './src/main/ets/core/DebugWindowManager';
+export { UIInspector } from './src/main/ets/core/UIInspector';
+export { DynamicTextModifier } from './src/main/ets/modifiers/DynamicTextModifier';
+export { DynamicColumnModifier } from './src/main/ets/modifiers/DynamicColumnModifier';
+export { DynamicRowModifier } from './src/main/ets/modifiers/DynamicRowModifier';
+export { DynamicButtonModifier } from './src/main/ets/modifiers/DynamicButtonModifier';
+export { DynamicFlexModifier } from './src/main/ets/modifiers/DynamicFlexModifier';
+export { DynamicListModifier } from './src/main/ets/modifiers/DynamicListModifier';
+export { DynamicStackModifier } from './src/main/ets/modifiers/DynamicStackModifier';
+export { VisualDebuggerPanel } from './src/main/ets/panel/VisualDebuggerPanel';

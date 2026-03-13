@@ -4,7 +4,7 @@
  * Author: Jason
  **/
 
-import { UIInspector } from './UIInspector';
+import { UIInspector } from '../core/UIInspector';
 // 定义全局的动态值类型
 export type JsonValue = string | number | boolean | Object | undefined;
 

@@ -1,6 +1,7 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { DebugWindowManager } from 'arkinspector';
 
 const DOMAIN = 0x0000;
 
@@ -22,8 +23,8 @@ export default class EntryAbility extends UIAbility {
     // Main window is created, set main page for this ability
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    // 💥 破局点：把 windowStage 存入系统全局级内存 AppStorage 中
-    AppStorage.setOrCreate('myWindowStage', windowStage);
+    // 💥 关键初始化操作：把 stage 句柄和刚刚建好的页面路径传给你的库
+    DebugWindowManager.init(windowStage, "pages/DebugOverlayPage");
 
     windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {

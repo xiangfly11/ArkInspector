@@ -7,6 +7,10 @@ import { DynamicBaseModifier } from "./DynamicBaseModifier";
 
 export class DynamicTextModifier extends DynamicBaseModifier implements AttributeModifier<TextAttribute> {
 
+  constructor(props: Record<string, Object>, dynamicId?: string) {
+    super(props, dynamicId);
+  }
+
   applyNormalAttribute(instance: TextAttribute): void {
     // 1. 继承基类：获得宽高、边距、背景、阴影等通用能力
     super.applyNormalAttribute(instance);

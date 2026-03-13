@@ -1,8 +1,10 @@
-import { DebugManager } from './DebugManager';
-import { DebugWindowManager } from './DebugWindowManager';
-import { DynamicTextModifier } from './DynamicTextModifier';
-import { DynamicColumnModifier } from './DynamicColumnModifier';
-import { UIInspector } from './UIInspector';
+import {
+  DebugManager,
+  DebugWindowManager,
+  UIInspector,
+  DynamicTextModifier,
+  DynamicColumnModifier
+} from 'arkinspector'; // 💥 从你的独立库中引入
 import { NewsItem } from './NewsItemModel';
 import { JSON } from '@kit.ArkTS';
 

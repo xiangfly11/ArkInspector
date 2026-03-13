@@ -7,8 +7,13 @@
 
 import { EventConfig } from './DynamicNode';
 import { SDUIState } from './SDUIState';
-import { SDUIActionHandler, UpdateStateAction, ShowToastAction, HttpRequestAction,
-  ToggleStateAction } from './SDUIActions';
+import {
+  SDUIActionHandler,
+  UpdateStateAction,
+  ShowToastAction,
+  HttpRequestAction,
+  ToggleStateAction
+} from './SDUIActions';
 
 // 【核心】：动作注册表，扩展新动作只需在这里加一行
 const ActionRegistry: Record<string, SDUIActionHandler> = {
@@ -21,7 +26,9 @@ const ActionRegistry: Record<string, SDUIActionHandler> = {
 export class SDUIEventDispatcher {
   // 静态分发方法
   static async dispatch(eventConfig: EventConfig | undefined, stateContext: SDUIState) {
-    if (!eventConfig || !eventConfig.actionType) return;
+    if (!eventConfig || !eventConfig.actionType) {
+      return;
+    }
 
     let handler = ActionRegistry[eventConfig.actionType];
     if (handler) {

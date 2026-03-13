@@ -6,9 +6,9 @@
  **/
 
 import { StateVisualizerNode, AnyValue } from './StateVisualizerNode';
-import { DebugManager } from './DebugManager';
-import { UIInspector } from './UIInspector';
-import { DebugWindowManager } from './DebugWindowManager'; // 💥 新增：引入窗口管理器来关闭悬浮窗
+import { DebugManager } from '../core/DebugManager';
+import { UIInspector } from '../core/UIInspector';
+import { DebugWindowManager } from '../core/DebugWindowManager';
 import { promptAction } from '@kit.ArkUI';
 
 @ComponentV2

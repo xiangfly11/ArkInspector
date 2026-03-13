@@ -7,6 +7,10 @@ import { DynamicBaseModifier } from "./DynamicBaseModifier";
 
 export class DynamicColumnModifier extends DynamicBaseModifier implements AttributeModifier<ColumnAttribute> {
 
+  constructor(props: Record<string, Object>, dynamicId?: string) {
+    super(props, dynamicId);
+  }
+
   applyNormalAttribute(instance: ColumnAttribute): void {
     // 1. 极其关键：调用基类，继承所有宽高、边距、背景、阴影等通用基础能力
     super.applyNormalAttribute(instance);

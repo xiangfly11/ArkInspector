@@ -7,6 +7,10 @@ import { DynamicBaseModifier } from "./DynamicBaseModifier";
 
 export class DynamicImageModifier extends DynamicBaseModifier implements AttributeModifier<ImageAttribute> {
 
+  constructor(props: Record<string, Object>, dynamicId?: string) {
+    super(props, dynamicId);
+  }
+
   applyNormalAttribute(instance: ImageAttribute): void {
     // 1. 继承基类：瞬间获得宽高、边距、阴影、以及最重要的 borderRadius（圆角裁切）能力
     super.applyNormalAttribute(instance);

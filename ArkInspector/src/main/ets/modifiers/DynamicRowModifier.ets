@@ -7,6 +7,10 @@ import { DynamicBaseModifier } from "./DynamicBaseModifier";
 
 export class DynamicRowModifier extends DynamicBaseModifier implements AttributeModifier<RowAttribute> {
 
+  constructor(props: Record<string, Object>, dynamicId?: string) {
+    super(props, dynamicId);
+  }
+
   applyNormalAttribute(instance: RowAttribute): void {
     // 1. 继承基类：瞬间获得宽高、边距、背景、阴影、圆角等所有通用能力
     super.applyNormalAttribute(instance);
