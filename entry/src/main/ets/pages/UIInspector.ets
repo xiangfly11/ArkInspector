@@ -2,55 +2,80 @@
  * Date: 2026/3/13
  * File Name: UIInspector.ets
  * Author: Jason
- * Description: 全局 UI 审查模式管理器
+ * Description: 原生 UI 审查模式挂载工具
  **/
-import { DynamicNode } from './DynamicNode';
+
 import { DebugManager } from './DebugManager';
 
 export class UIInspector {
-  // 是否开启了“元素选中模式”
+  // 当前是否处于“审查模式”
   static isInspectMode: boolean = false;
 
-  // 当前选中的节点 ID 或引用
-  static selectedNodeId: string | null = null;
+  // 当前选中的控件 ID (用于给对应控件画红色虚线框)
+  static selectedId: string = '';
 
-  // 触发 UI 强制刷新的回调（由最外层页面注入）
-  static forceUpdateCallback: () => void = () => {};
-
-  // 选中一个组件节点
-  static selectNode(node: DynamicNode) {
-    // 1. 记录选中的节点，用于加上高亮边框
-    // 为了可靠性，如果节点没有 nodeId，我们可以动态给它赋一个随机的
-    if (!node.props['nodeId']) {
-      node.props['nodeId'] = 'ins_' + Math.floor(Math.random() * 1000000);
-    }
-    UIInspector.selectedNodeId = String(node.props['nodeId']);
-
-    // 2. 💥 将这个组件的 props 自动推送到我们之前的调试注册中心！
-    DebugManager.register("selectedUI", node.props, (newProps: ESObject) => {
-      // 当在悬浮窗里修改了 fontSize、width 等属性时...
-
-      // 替换节点的 props
-      let keys = Object.keys(newProps as object);
-      for (let i = 0; i < keys.length; i++) {
-        node.props[keys[i]] = newProps[keys[i]];
-      }
-
-      // 触发全局或局部的重绘，让 Modifier 重新执行！
-      UIInspector.forceUpdateCallback();
-    });
-
-    // 触发一下重绘，让选中框显示出来
-    UIInspector.forceUpdateCallback();
-  }
+  // 💥 核心通信机制：信号发射器，通知悬浮窗面板“有新控件被选中了，快拉取数据”
+  static onComponentSelected: () => void = () => {};
 
   // 开启/关闭审查模式
   static toggleMode() {
     UIInspector.isInspectMode = !UIInspector.isInspectMode;
     if (!UIInspector.isInspectMode) {
-      UIInspector.selectedNodeId = null;
+      // 退出审查模式时，清空选中状态并注销数据
+      UIInspector.selectedId = '';
       DebugManager.unregister("selectedUI");
     }
-    UIInspector.forceUpdateCallback();
+  }
+
+  /**
+   * 核心魔法钩子：包裹在原生组件的 onClick 中
+   * @param id 控件的唯一标识 (需与 Modifier 传入的 ID 保持一致)
+   * @param styleDict 控件绑定的 @Local 样式字典
+   * @param updater 触发当前页面局部刷新的回调
+   * @param originalClick 控件原本的业务点击事件（可选）
+   */
+  static withInspect(
+    id: string,
+    styleDict: ESObject,
+    updater: (newStyle: ESObject) => void,
+    originalClick?: () => void
+  ): (e: ClickEvent) => void {
+
+    return (e: ClickEvent) => {
+      if (UIInspector.isInspectMode) {
+        // 1. 拦截点击事件冒泡，防止点到里层却选中了外层父容器
+        let safeEvent: ESObject = e;
+        if (safeEvent && safeEvent.stopPropagation) {
+          safeEvent.stopPropagation();
+        }
+
+        // 2. 标记当前组件为“被选中”
+        UIInspector.selectedId = id;
+
+        // 3. 克隆一份样式字典，触发原生组件刷新（为了让红色虚线框瞬间显示出来）
+        let clonedStyle: Record<string, Object> = {};
+        let keys = Object.keys(styleDict as object);
+        for (let i = 0; i < keys.length; i++) {
+          clonedStyle[keys[i]] = styleDict[keys[i]];
+        }
+        updater(clonedStyle);
+
+        // 4. 将这个组件的样式字典，推送到全局数据注册表！
+        DebugManager.register("selectedUI", clonedStyle, (newProps: ESObject) => {
+          // 当你在悬浮窗面板里修改了 fontSize 等属性时，会回调到这里
+          // 将新属性传给外层页面，触发原生 UI 重绘
+          updater(newProps);
+        });
+
+        // 5. 💥 致命一击：发射信号！通知面板立刻去拿数据并渲染出修改输入框！
+        UIInspector.onComponentSelected();
+
+      } else {
+        // 正常运行模式下，直接执行原本的业务点击逻辑
+        if (originalClick) {
+          originalClick();
+        }
+      }
+    }
   }
 }

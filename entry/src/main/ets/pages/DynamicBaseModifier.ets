@@ -4,14 +4,17 @@
  * Author: Jason
  **/
 
+import { UIInspector } from './UIInspector';
 // 定义全局的动态值类型
 export type JsonValue = string | number | boolean | Object | undefined;
 
 export class DynamicBaseModifier implements AttributeModifier<CommonAttribute> {
   protected props: Record<string, JsonValue>;
+  dynamicId?: string;
 
-  constructor(props: Record<string, JsonValue>) {
+  constructor(props: Record<string, JsonValue>, dynamicId?: string) {
     this.props = props;
+    this.dynamicId = dynamicId;
   }
 
   // 系统底层调用的核心方法：将 JSON 属性映射为 ArkUI 基础属性
@@ -182,6 +185,15 @@ export class DynamicBaseModifier implements AttributeModifier<CommonAttribute> {
     // ==========================================
     if (this.props['opacity'] !== undefined) {
       instance.opacity(this.props['opacity'] as number);
+    }
+
+    // 💥 审查模式的视觉反馈：如果开启了审查，且当前组件就是被选中的那个，画出红色虚线框！
+    let inspectId = this.dynamicId ? this.dynamicId : (this.props['inspectId'] as string);
+    if (UIInspector.isInspectMode && inspectId && UIInspector.selectedId === inspectId) {
+      instance.borderWidth(2).borderColor('#FF0000').borderStyle(BorderStyle.Dashed);
+    } else {
+      // 恢复原样
+      instance.borderWidth(0);
     }
   }
 
