@@ -3,34 +3,41 @@ import {
   DebugWindowManager,
   UIInspector,
   DynamicTextModifier,
-  DynamicColumnModifier
+  DynamicColumnModifier,
+  TextStyleBuilder,
+  ColumnStyleBuilder,
+  UIController
 } from 'arkinspector'; // 💥 从你的独立库中引入
 import { NewsItem } from './NewsItemModel';
 import { JSON } from '@kit.ArkTS';
 
 // ==========================================
-// 3. 真实业务页面与探针的结合
+// 真实业务页面与探针的结合
 // ==========================================
 @Entry
 @ComponentV2
 struct RealWorldListPage {
   @Local newsList: NewsItem[] = [];
 
-  @Local titleStyle: Record<string, Object> = {
-    'fontSize': 18,
-    'fontColor': '#333333',
-    'fontWeight': 'bold',
-    'padding': { 'top': 10, 'bottom': 10 } as Record<string, number>,
-    'layoutWeight': 1
-  };
+  @Local fontSize: number = 18;
 
-  @Local cardStyle: Record<string, Object> = {
-    'width': '100%',
-    'backgroundColor': '#FFFFFF',
-    'borderRadius': 12,
-    'padding': 16,
-    'margin': { 'top': 10 } as Record<string, number>
-  };
+  @Local titleCtrl: UIController = new UIController(
+    new TextStyleBuilder()
+      .fontSize(15)
+      .fontColor('#333333')
+      .padding({top: 10, bottom: 10})
+      .fontWeight(FontWeight.Bold)
+      .layoutWeight(1)
+      .build()
+  );
+
+  @Local cardStyle: Record<string, Object> = new ColumnStyleBuilder()
+    .width('100%')
+    .backgroundColor(Color.White)
+    .borderRadius(12)
+    .padding(16)
+    .margin({top: 10})
+    .build();
 
   aboutToAppear() {
     let news1 = new NewsItem();
@@ -64,9 +71,11 @@ struct RealWorldListPage {
 
                 // --- 标题组件 ---
                 Text(item.newsTitle)
-                  .attributeModifier(new DynamicTextModifier(this.titleStyle, `news_title_${index}`))
-                  .onClick(UIInspector.withInspect(`news_title_${index}`, this.titleStyle, (newStyle: ESObject) => {
-                    this.titleStyle = newStyle as Record<string, Object>;
+                  .attributeModifier(new DynamicTextModifier(this.titleCtrl.style, `news_title_${index}`))
+                  .onClick(this.titleCtrl.bindInspector(`news_title_${index}`, () => {
+                    // 这里写你原本的业务逻辑
+                    console.log(`业务逻辑：用户点击了新闻 [${item.newsTitle}]，准备跳转详情页！`);
+                    // router.pushUrl(...)
                   }))
 
                 if (item.isHot) {
@@ -92,6 +101,12 @@ struct RealWorldListPage {
           (item: NewsItem, index: number) => JSON.stringify(item))
       }
       .width('100%').padding(16).backgroundColor('#F5F6F8').layoutWeight(1)
+
+      Button("业务代码动态修改字体")
+        .onClick(() => {
+          // 💥 4. 业务逻辑依然极度优雅，通过 update 方法更新，UI 瞬间刷新！
+          this.titleCtrl.update('fontSize', 50);
+        })
 
       Button("🐞 呼出全局调试面板")
         .onClick(() => {

@@ -9,3 +9,7 @@ export { DynamicFlexModifier } from './src/main/ets/modifiers/DynamicFlexModifie
 export { DynamicListModifier } from './src/main/ets/modifiers/DynamicListModifier';
 export { DynamicStackModifier } from './src/main/ets/modifiers/DynamicStackModifier';
 export { VisualDebuggerPanel } from './src/main/ets/panel/VisualDebuggerPanel';
+export { BaseStyleBuilder } from './src/main/ets/styleBuilder/BaseStyleBuilder';
+export { TextStyleBuilder } from './src/main/ets/styleBuilder/TextStyleBuilder';
+export { ColumnStyleBuilder } from './src/main/ets/styleBuilder/ColumnStyleBuilder';
+export { UIController } from './src/main/ets/controller/UIController';
