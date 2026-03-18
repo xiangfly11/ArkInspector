@@ -17,7 +17,7 @@ export struct VisualDebuggerPanel {
   @Local currentBoundData: ESObject = undefined;
   @Local currentUpdater: ((newVal: ESObject) => void) | undefined = undefined;
   @Local inspectMode: boolean = false;
-
+  @Local searchText: string = ''; // 💥 用来存搜索关键词
   aboutToAppear() {
     // 监听：只要有控件被选中了
     UIInspector.onComponentSelected = () => {
@@ -34,7 +34,7 @@ export struct VisualDebuggerPanel {
   build() {
     Column() {
       // ==========================================
-      // 1. 顶部控制栏：审查开关、变量绑定与关闭按钮
+      // 顶部控制栏：审查开关、变量绑定与关闭按钮
       // ==========================================
       Row({ space: 8 }) {
         // 🔍 UI 审查模式切换按钮
@@ -111,33 +111,60 @@ export struct VisualDebuggerPanel {
       Divider().color('#E0E0E0')
 
       // ==========================================
-      // 2. 核心渲染区：递归展示 JSON 树结构
+      // 搜索框
+      // ==========================================
+      TextInput({ placeholder: '🔍 搜索属性 (例如: font)', text: this.searchText })
+        .height(36)
+        .margin({ left: 12, right: 12, top: 10, bottom: 4 })
+        .fontSize(13)
+        .backgroundColor('#F5F6F8')
+        .onChange((val) => {
+          this.searchText = val; // 输入时，实时更新搜索词
+        })
+
+      // ==========================================
+      // 核心渲染区：递归展示 JSON 树结构
       // ==========================================
       if (this.currentBoundData !== undefined) {
         Scroll() {
           Column() {
-            ForEach(Object.keys(this.currentBoundData as object), (key: string) => {
-              StateVisualizerNode({
-                keyName: key,
-                value: (this.currentBoundData as ESObject)[key],
-                onValueChange: (k: string, v: AnyValue) => {
-                  let oldDynamic: ESObject = this.currentBoundData;
-                  let newData: ESObject = Array.isArray(oldDynamic) ? [] : {};
-                  let keys = Object.keys(oldDynamic as object);
+            ForEach(
+              // 1. 获取所有的 key
+              Object.keys(this.currentBoundData as object)
+              // 2. 过滤掉不符合搜索词的 key (如果搜索词为空，则全部保留)
+                .filter((key: string) =>
+                this.searchText === '' || key.toLowerCase().includes(this.searchText.toLowerCase())
+                ),
 
-                  for (let i = 0; i < keys.length; i++) {
-                    newData[keys[i]] = oldDynamic[keys[i]];
+              // 3. 渲染符合条件的节点
+              (key: string) => {
+                StateVisualizerNode({
+                  keyName: key,
+                  value: (this.currentBoundData as ESObject)[key],
+                  onValueChange: (k: string, v: AnyValue) => {
+                    // 克隆当前数据字典
+                    let oldDynamic: ESObject = this.currentBoundData;
+                    let newData: ESObject = Array.isArray(oldDynamic) ? [] : {};
+                    let keys = Object.keys(oldDynamic as object);
+
+                    for (let i = 0; i < keys.length; i++) {
+                      newData[keys[i]] = oldDynamic[keys[i]];
+                    }
+
+                    // 更新修改的值
+                    newData[k] = v;
+                    this.currentBoundData = newData;
+
+                    // 向上层（比如业务页面）通知数据变动，触发 UI 重绘
+                    if (this.currentUpdater) {
+                      this.currentUpdater(newData);
+                    }
                   }
-
-                  newData[k] = v;
-                  this.currentBoundData = newData;
-
-                  if (this.currentUpdater) {
-                    this.currentUpdater(newData);
-                  }
-                }
-              })
-            }, (key: string) => key)
+                })
+              },
+              // 4. 键值生成器
+              (key: string) => key
+            )
           }
           .padding(12)
         }
