@@ -1,6 +1,7 @@
 export { DebugManager } from './src/main/ets/core/DebugManager';
 export { DebugWindowManager } from './src/main/ets/core/DebugWindowManager';
 export { UIInspector } from './src/main/ets/core/UIInspector';
+export { UIController } from './src/main/ets/controller/UIController';
 export { DynamicTextModifier } from './src/main/ets/modifiers/DynamicTextModifier';
 export { DynamicColumnModifier } from './src/main/ets/modifiers/DynamicColumnModifier';
 export { DynamicRowModifier } from './src/main/ets/modifiers/DynamicRowModifier';
@@ -12,4 +13,9 @@ export { VisualDebuggerPanel } from './src/main/ets/panel/VisualDebuggerPanel';
 export { BaseStyleBuilder } from './src/main/ets/styleBuilder/BaseStyleBuilder';
 export { TextStyleBuilder } from './src/main/ets/styleBuilder/TextStyleBuilder';
 export { ColumnStyleBuilder } from './src/main/ets/styleBuilder/ColumnStyleBuilder';
-export { UIController } from './src/main/ets/controller/UIController';
+export { ButtonStyleBuilder } from './src/main/ets/styleBuilder/ButtonStyleBuilder';
+export { FlexStyleBuilder } from './src/main/ets/styleBuilder/FlexStyleBuilder';
+export { ListStyleBuilder } from './src/main/ets/styleBuilder/ListStyleBuilder';
+export { StackStyleBuilder } from './src/main/ets/styleBuilder/StackStyleBuilder';
+export { RowStyleBuilder } from './src/main/ets/styleBuilder/RowStyleBuilder';
+export { ImageStyleBuilder } from './src/main/ets/styleBuilder/ImageStyleBuilder';
