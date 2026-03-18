@@ -31,15 +31,53 @@ export struct StateVisualizerNode {
           Text((!Number.isNaN(Number(this.keyName)) ? `[${this.keyName}]` : this.keyName) + ": ")
             .fontSize(14).fontWeight(FontWeight.Bold).fontColor('#333333')
 
+          // ==========================================
+          // 1. 字符串类型：普通输入框
+          // ==========================================
           if (typeof this.value === 'string') {
             TextInput({ text: this.value as string })
               .height(28).fontSize(13).layoutWeight(1).backgroundColor('#F0F0F0')
               .onChange((val) => { this.onValueChange(this.keyName, val) })
-          } else if (typeof this.value === 'number') {
-            TextInput({ text: String(this.value) }).type(InputType.Number)
-              .height(28).fontSize(13).layoutWeight(1).backgroundColor('#F0F0F0')
-              .onChange((val) => { this.onValueChange(this.keyName, Number(val)) })
-          } else if (typeof this.value === 'boolean') {
+          }
+          // ==========================================
+          // 💥 2. 数字类型：Slider + 迷你输入框！
+          // ==========================================
+          else if (typeof this.value === 'number') {
+            Row({ space: 8 }) {
+              // 丝滑滑动条
+              Slider({
+                value: this.value as number,
+                min: 0,
+                // 动态计算 Max 值：默认最大 100，如果初始值超过 100，则以初始值为基准，防止滑块溢出
+                max: Math.max(100, this.value as number),
+                step: 1,
+                style: SliderStyle.OutSet
+              })
+                .layoutWeight(1) // 占满剩余空间
+                .onChange((val: number, mode: SliderChangeMode) => {
+                  this.onValueChange(this.keyName, val);
+                })
+
+              // 右侧保留精确控制的迷你输入框
+              TextInput({ text: String(this.value) })
+                .type(InputType.Number)
+                .width(45) // 限制得很窄，只显示数字
+                .height(28)
+                .fontSize(12)
+                .backgroundColor('#F0F0F0')
+                .onChange((val) => {
+                  let num = Number(val);
+                  if (!Number.isNaN(num)) {
+                    this.onValueChange(this.keyName, num);
+                  }
+                })
+            }
+            .layoutWeight(1) // 让包含 Slider 和 TextInput 的 Row 撑开
+          }
+          // ==========================================
+          // 3. 布尔类型：Switch 开关
+          // ==========================================
+          else if (typeof this.value === 'boolean') {
             Toggle({ type: ToggleType.Switch, isOn: this.value as boolean })
               .onChange((isOn) => { this.onValueChange(this.keyName, isOn) })
           }
@@ -53,11 +91,10 @@ export struct StateVisualizerNode {
                 keyName: subKey,
                 value: (this.value as ESObject)[subKey],
                 onValueChange: (k: string, v: AnyValue) => {
-                  // 💥 绝杀技：原地突变！绝对不破坏数组和 Class 的原有结构！
+                  // 原地突变，不破坏原有结构
                   let currentObj: ESObject = this.value;
                   currentObj[k] = v;
-
-                  // 直接把修改好的当前对象继续往上冒泡
+                  // 继续向上冒泡
                   this.onValueChange(this.keyName, currentObj);
                 }
               })
