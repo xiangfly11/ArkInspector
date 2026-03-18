@@ -10,6 +10,7 @@ import { DebugManager } from '../core/DebugManager';
 import { UIInspector } from '../core/UIInspector';
 import { DebugWindowManager } from '../core/DebugWindowManager';
 import { promptAction } from '@kit.ArkUI';
+import { pasteboard } from '@kit.BasicServicesKit';
 
 @ComponentV2
 export struct VisualDebuggerPanel {
@@ -31,6 +32,43 @@ export struct VisualDebuggerPanel {
     }
   }
 
+  // 💥 将当前的字典数据，转换为 ArkTS 链式语法代码
+  private generateArkTSCode(): string {
+    if (!this.currentBoundData || typeof this.currentBoundData !== 'object') {
+      return '';
+    }
+
+    let code = '';
+    let keys = Object.keys(this.currentBoundData as object);
+
+    for (let i = 0; i < keys.length; i++) {
+      let key = keys[i];
+      let value = (this.currentBoundData as Record<string, Object>)[key];
+
+      // 1. 忽略空值
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      // 2. 字符串类型：需要加引号 (如 .fontColor('#FF0000') )
+      if (typeof value === 'string') {
+        code += `\n  .${key}('${value}')`;
+      }
+      // 3. 数字或布尔类型：直接拼接 (如 .fontSize(18) 或 .enabled(true) )
+      else if (typeof value === 'number' || typeof value === 'boolean') {
+        code += `\n  .${key}(${value})`;
+      }
+      // 4. 对象类型 (如 padding: {top: 10})：转成带大括号的 JS 对象格式
+      else if (typeof value === 'object') {
+        // 使用 JSON.stringify，并通过正则去掉 key 的双引号，让代码更像原生 ArkTS
+        let objStr = JSON.stringify(value).replace(/"([^"]+)":/g, '$1: ');
+        code += `\n  .${key}(${objStr})`;
+      }
+    }
+
+    return code;
+  }
+
   build() {
     Column() {
       // ==========================================
@@ -38,6 +76,36 @@ export struct VisualDebuggerPanel {
       // ==========================================
       Row({ space: 8 }) {
         // 🔍 UI 审查模式切换按钮
+        if (this.currentBoundData !== undefined) {
+          Button("📋 导出代码")
+            .height(32)
+            .fontSize(13)
+            .backgroundColor('#10C060') // 骚气的微信绿，代表操作成功率高
+            .onClick(() => {
+              // 1. 生成链式代码
+              let codeString = this.generateArkTSCode();
+
+              if (!codeString) {
+                promptAction.showToast({ message: "数据为空，无法导出" });
+                return;
+              }
+
+              // 2. 创建剪贴板数据
+              let pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, codeString);
+              let systemPasteboard = pasteboard.getSystemPasteboard();
+
+              // 3. 写入系统剪贴板并提示
+              systemPasteboard.setData(pasteData).then(() => {
+                promptAction.showToast({ message: "✨ ArkTS 样式代码已复制到剪贴板！" });
+                // 可选：在控制台也打印一份，方便在 PC 端的 Log 里直接复制
+                console.info("ArkInspector", "====== 导出的样式代码 ======");
+                console.info("ArkInspector", codeString);
+                console.info("ArkInspector", "=========================");
+              }).catch((err: Error) => {
+                promptAction.showToast({ message: "复制失败: " + err.message });
+              });
+            })
+        }
         Button(this.inspectMode ? "🛑 退出审查" : "🔍 审查 UI")
           .backgroundColor(this.inspectMode ? '#FF4444' : '#3E75D8')
           .fontSize(13)
