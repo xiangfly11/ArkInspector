@@ -2,6 +2,7 @@ export { DebugManager } from './src/main/ets/core/DebugManager';
 export { DebugWindowManager } from './src/main/ets/core/DebugWindowManager';
 export { UIInspector } from './src/main/ets/core/UIInspector';
 export { UIController } from './src/main/ets/controller/UIController';
+export { BoxModelOverlay } from './src/main/ets/core/BoxModelOverlay';
 export { DynamicTextModifier } from './src/main/ets/modifiers/DynamicTextModifier';
 export { DynamicColumnModifier } from './src/main/ets/modifiers/DynamicColumnModifier';
 export { DynamicRowModifier } from './src/main/ets/modifiers/DynamicRowModifier';
