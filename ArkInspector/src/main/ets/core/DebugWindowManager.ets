@@ -38,7 +38,7 @@ export class DebugWindowManager {
       // ==========================================
       // 💥 智能计算悬浮窗的最佳尺寸与初始位置
       // ==========================================
-      if (DebugWindowManager.screenW > 800) {
+      if (DebugWindowManager.screenW > 1600) {
         // 折叠屏展开/平板：面板占屏幕宽度的 50%
         DebugWindowManager.panelW = Math.floor(DebugWindowManager.screenW * 0.5);
         DebugWindowManager.panelH = Math.floor(DebugWindowManager.screenH * 0.6);
